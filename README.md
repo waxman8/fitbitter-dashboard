@@ -1,6 +1,6 @@
 # Fitbitter Dashboard
 
-This directory contains the source code for the Fitbitter dashboard, a [Next.js](https://nextjs.org/) application designed to visualize your Fitbit data. It uses the python app for its back-end, session and token handling etc. 
+This is the source code for the Fitbitter dashboard, a [Next.js](https://nextjs.org/) application designed to visualize your Fitbit data. It uses the python app for its back-end, session and token handling etc.
 
 ## Overview
 
@@ -12,25 +12,19 @@ This reflects the metric I was most interested in: "heart rate below average res
 To run the dashboard locally, follow these steps:
 
 0. **Ensure the python app is running**
-   Follow the steps here [Main README](../README.md)
+   Follow the steps in the main Fitbitter repository to run the backend server.
 
-1.  **Navigate to the dashboard directory:**
-    ```bash
-    cd dashboard
-    ```
-
-2.  **Install dependencies:**
-    Make sure you have [Node.js](https://nodejs.org/) installed. Then, run the following command to install the necessary packages.
+1.  **Install dependencies:**
     ```bash
     npm install
     ```
 
-3.  **Run the development server:**
+2.  **Run the development server:**
     ```bash
     npm run dev
     ```
 
-4.  **View the dashboard:**
+3.  **View the dashboard:**
     Open [http://localhost:3000](http://localhost:3000) in your web browser to see the application.
 
 ## Project Structure
