@@ -5,14 +5,36 @@ import { useEffect, useState } from 'react';
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [backendUrl, setBackendUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    // Fetch the backend URL from our config endpoint
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch('/api/config');
+        if (response.ok) {
+          const config = await response.json();
+          setBackendUrl(config.backendApiUrl);
+        } else {
+          console.error('Failed to fetch app configuration');
+        }
+      } catch (error) {
+        console.error('Error fetching configuration:', error);
+      }
+    };
+
+    fetchConfig();
+  }, []);
+
+  useEffect(() => {
+    if (!backendUrl) return; // Don't check auth until we have the backend URL
+
     // This function will check if the user is authenticated by making a request to a protected endpoint.
     // We'll use a simple profile endpoint for this check. If it returns 200, we are logged in.
     const checkAuthStatus = async () => {
       try {
         // The browser will automatically send the session cookie.
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/v1/auth-status`, { credentials: 'include' });
+        const response = await fetch(`${backendUrl}/api/v1/auth-status`, { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setIsAuthenticated(data.isAuthenticated);
@@ -28,11 +50,15 @@ export default function Home() {
     };
 
     checkAuthStatus();
-  }, []);
+  }, [backendUrl]);
 
   const handleLogin = () => {
+    if (!backendUrl) {
+      alert("Configuration is not loaded yet. Please try again in a moment.");
+      return;
+    }
     // Redirect the user to the backend's login route.
-    window.location.href = `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/login?source=dashboard`;
+    window.location.href = `${backendUrl}/login?source=dashboard`;
   };
 
   if (isLoading) {
@@ -59,9 +85,10 @@ export default function Home() {
             <p className="text-lg text-red-500">Please log in to view your data.</p>
             <button
               onClick={handleLogin}
-              className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+              disabled={!backendUrl}
+              className="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-400"
             >
-              Login with Fitbit
+              {backendUrl ? "Login with Fitbit" : "Loading..."}
             </button>
           </div>
         )}
