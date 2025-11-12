@@ -1,13 +1,14 @@
 # Stage 1: Build the Next.js application
-FROM node:20-alpine AS builder
+# Pin specific version for reproducibility
+FROM node:20.10-alpine AS builder  
 
 WORKDIR /app
 
 # Copy package.json and package-lock.json first to leverage Docker cache
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install ALL dependencies (including dev for TypeScript during build)
+RUN npm ci
 
 # Copy the rest of the application code
 COPY . .
@@ -19,20 +20,23 @@ ENV NEXT_PUBLIC_BACKEND_API_URL=$NEXT_PUBLIC_BACKEND_API_URL
 # Build the Next.js application
 RUN npm run build
 
+# Prune dev dependencies to slim down node_modules for production
+RUN npm prune --production
+
 # Stage 2: Create a smaller production image
-FROM node:20-alpine AS runner
+FROM node:20.10-alpine AS runner
 
 WORKDIR /app
 
 # Set environment variables for Next.js production
 ENV NODE_ENV production
 
-# Copy only necessary files from the builder stage
+# Copy only necessary files from the builder stage (now with pruned node_modules)
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/next.config.ts ./next.config.ts
+COPY --from=builder /app/next.config.ts ./next.config.ts  
 
 # Expose port 3000 for the Next.js application
 EXPOSE 3000
