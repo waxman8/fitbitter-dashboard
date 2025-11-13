@@ -2,27 +2,41 @@
 
 import { useEffect, useState } from 'react';
 import SleepChart from '@/components/SleepChart';
+import RestingHeartRateChart from '@/components/RestingHeartRateChart';
 import DateTimePicker from '@/components/DateTimePicker';
 
-const getInitialStartDate = () => {
+const getInitialSleepStartDate = () => {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   yesterday.setHours(22, 30, 0, 0);
   return yesterday;
 };
 
-const getInitialEndDate = () => {
+const getInitialSleepEndDate = () => {
   const today = new Date();
   today.setHours(8, 0, 0, 0);
   return today;
 };
 
+const getInitialHeartRateStartDate = () => {
+  const date = new Date();
+  date.setDate(date.getDate() - 7);
+  return date;
+};
+
+const getInitialHeartRateEndDate = () => {
+  return new Date();
+};
+
 export default function Dashboard() {
   const [sleepData, setSleepData] = useState(null);
+  const [restingHeartRateData, setRestingHeartRateData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [startDate, setStartDate] = useState(getInitialStartDate());
-  const [endDate, setEndDate] = useState(getInitialEndDate());
+  const [sleepStartDate, setSleepStartDate] = useState(getInitialSleepStartDate());
+  const [sleepEndDate, setSleepEndDate] = useState(getInitialSleepEndDate());
+  const [heartRateStartDate, setHeartRateStartDate] = useState(getInitialHeartRateStartDate());
+  const [heartRateEndDate, setHeartRateEndDate] = useState(getInitialHeartRateEndDate());
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -35,20 +49,32 @@ export default function Dashboard() {
         return;
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/v1/sleep-data?start_datetime=${startDate.toISOString()}&end_datetime=${endDate.toISOString()}`,
+      const sleepResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/v1/sleep-data?start_datetime=${sleepStartDate.toISOString()}&end_datetime=${sleepEndDate.toISOString()}`,
         { credentials: 'include' }
       );
 
-      if (!response.ok) {
-        if (response.status === 401) {
+      if (!sleepResponse.ok) {
+        if (sleepResponse.status === 401) {
           window.location.href = '/';
         }
         throw new Error('Failed to fetch sleep data');
       }
 
-      const data = await response.json();
-      setSleepData(data);
+      const sleepData = await sleepResponse.json();
+      setSleepData(sleepData);
+
+      const heartRateResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/v1/resting-heart-rate?start_date=${heartRateStartDate.toISOString().split('T')[0]}&end_date=${heartRateEndDate.toISOString().split('T')[0]}`,
+        { credentials: 'include' }
+      );
+
+      if (!heartRateResponse.ok) {
+        throw new Error('Failed to fetch resting heart rate data');
+      }
+
+      const heartRateData = await heartRateResponse.json();
+      setRestingHeartRateData(heartRateData);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -80,18 +106,18 @@ export default function Dashboard() {
       <a href="/" className="mb-10 text-blue-500 hover:underline">Back to Home</a>
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-10">
-        <div className="flex flex-col flex-shrink-0 w-50">
+        <div className="flex flex-col flex-shrink-0 w-53">
           <DateTimePicker
             label="Start Date"
-            selected={startDate}
-            onChange={(date) => date && setStartDate(date)}
+            selected={sleepStartDate}
+            onChange={(date) => date && setSleepStartDate(date)}
           />
         </div>
-        <div className="flex flex-col flex-shrink-0 w-50">
+        <div className="flex flex-col flex-shrink-0 w-53">
           <DateTimePicker
             label="End Date"
-            selected={endDate}
-            onChange={(date) => date && setEndDate(date)}
+            selected={sleepEndDate}
+            onChange={(date) => date && setSleepEndDate(date)}
           />
         </div>
         <button
@@ -104,6 +130,34 @@ export default function Dashboard() {
       
       <div className="w-full max-w-6xl">
         {sleepData ? <SleepChart data={sleepData} /> : <p>No sleep data to display.</p>}
+      </div>
+
+      <div className="w-full max-w-6xl mt-10">
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-10">
+          <div className="flex flex-col flex-shrink-0 w-53">
+            <DateTimePicker
+              label="Start Date"
+              selected={heartRateStartDate}
+              onChange={(date) => date && setHeartRateStartDate(date)}
+              showTimeSelect={false}
+            />
+          </div>
+          <div className="flex flex-col flex-shrink-0 w-53">
+            <DateTimePicker
+              label="End Date"
+              selected={heartRateEndDate}
+              onChange={(date) => date && setHeartRateEndDate(date)}
+              showTimeSelect={false}
+            />
+          </div>
+          <button
+            onClick={fetchData}
+            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-2 rounded-lg font-semibold transition-all mt-6"
+          >
+            Go
+          </button>
+        </div>
+        {restingHeartRateData ? <RestingHeartRateChart data={restingHeartRateData} /> : <p>No resting heart rate data to display.</p>}
       </div>
     </main>
   );
