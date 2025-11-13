@@ -4,12 +4,25 @@ import { useEffect, useState } from 'react';
 import SleepChart from '@/components/SleepChart';
 import DateTimePicker from '@/components/DateTimePicker';
 
+const getInitialStartDate = () => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(22, 30, 0, 0);
+  return yesterday;
+};
+
+const getInitialEndDate = () => {
+  const today = new Date();
+  today.setHours(8, 0, 0, 0);
+  return today;
+};
+
 export default function Dashboard() {
   const [sleepData, setSleepData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [startDate, setStartDate] = useState(new Date('2025-10-31T23:45'));
-  const [endDate, setEndDate] = useState(new Date('2025-11-01T08:30'));
+  const [startDate, setStartDate] = useState(getInitialStartDate());
+  const [endDate, setEndDate] = useState(getInitialEndDate());
 
   const fetchData = async () => {
     setIsLoading(true);

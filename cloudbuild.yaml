@@ -1,0 +1,48 @@
+steps:
+  - name: gcr.io/cloud-builders/gcloud
+    args:
+      - '-c'
+      - |
+        gcloud services enable containerregistry.googleapis.com
+        gcloud config set builds/use_kaniko True
+    entrypoint: bash
+  - name: 'gcr.io/kaniko-project/executor:latest'
+    args:
+      - >-
+        --destination=$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$_SERVICE_NAME:$COMMIT_SHA
+      - '--cache=true'
+      - '--cache-ttl=24h'
+      - '--build-arg=NEXT_PUBLIC_BACKEND_API_URL=$_BACKEND_API_URL'
+      - '--dockerfile=Dockerfile.frontend'
+    id: Build
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    args:
+      - run
+      - services
+      - update
+      - $_SERVICE_NAME
+      - '--platform=managed'
+      - >-
+        --image=$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$_SERVICE_NAME:$COMMIT_SHA
+      - >-
+        --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID
+      - '--region=$_DEPLOY_REGION'
+      - '--quiet'
+    id: Deploy
+    entrypoint: gcloud
+options:
+  substitutionOption: ALLOW_LOOSE
+  logging: CLOUD_LOGGING_ONLY
+  dynamicSubstitutions: true
+substitutions:
+  _AR_HOSTNAME: europe-west1-docker.pkg.dev
+  _AR_REPOSITORY: cloud-run-source-deploy
+  _AR_PROJECT_ID: fitbitter
+  _PLATFORM: managed
+  _SERVICE_NAME: fitbitter-dashboard
+  _DEPLOY_REGION: europe-west1
+  _TRIGGER_ID: 1123cb90-c399-4cd9-94bb-fda571195933
+tags:
+  - gcp-cloud-build-deploy-cloud-run
+  - gcp-cloud-build-deploy-cloud-run-managed
+  - fitbitter-dashboard
