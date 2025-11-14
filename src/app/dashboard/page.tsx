@@ -31,48 +31,53 @@ const getInitialHeartRateEndDate = () => {
 export default function Dashboard() {
   const [sleepData, setSleepData] = useState(null);
   const [restingHeartRateData, setRestingHeartRateData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSleepLoading, setIsSleepLoading] = useState(true);
+  const [isHeartRateLoading, setIsHeartRateLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sleepStartDate, setSleepStartDate] = useState(getInitialSleepStartDate());
   const [sleepEndDate, setSleepEndDate] = useState(getInitialSleepEndDate());
   const [heartRateStartDate, setHeartRateStartDate] = useState(getInitialHeartRateStartDate());
   const [heartRateEndDate, setHeartRateEndDate] = useState(getInitialHeartRateEndDate());
 
-  const fetchData = async () => {
-    setIsLoading(true);
+  const fetchSleepData = async () => {
+    setIsSleepLoading(true);
     setError(null);
     try {
-      // First, check authentication status
-      const authResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/v1/auth-status`, { credentials: 'include' });
-      if (!authResponse.ok || !(await authResponse.json()).isAuthenticated) {
-        window.location.href = '/';
-        return;
-      }
-
       const sleepResponse = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/v1/sleep-data?start_datetime=${sleepStartDate.toISOString()}&end_datetime=${sleepEndDate.toISOString()}`,
         { credentials: 'include' }
       );
-
+  
       if (!sleepResponse.ok) {
-        if (sleepResponse.status === 401) {
-          window.location.href = '/';
-        }
         throw new Error('Failed to fetch sleep data');
       }
-
+  
       const sleepData = await sleepResponse.json();
       setSleepData(sleepData);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred");
+      }
+    } finally {
+      setIsSleepLoading(false);
+    }
+  };
 
+  const fetchHeartRateData = async () => {
+    setIsHeartRateLoading(true);
+    setError(null);
+    try {
       const heartRateResponse = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/v1/resting-heart-rate?start_date=${heartRateStartDate.toISOString().split('T')[0]}&end_date=${heartRateEndDate.toISOString().split('T')[0]}`,
         { credentials: 'include' }
       );
-
+  
       if (!heartRateResponse.ok) {
         throw new Error('Failed to fetch resting heart rate data');
       }
-
+  
       const heartRateData = await heartRateResponse.json();
       setRestingHeartRateData(heartRateData);
     } catch (err) {
@@ -82,17 +87,30 @@ export default function Dashboard() {
         setError("An unknown error occurred");
       }
     } finally {
-      setIsLoading(false);
+      setIsHeartRateLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    const checkAuthAndFetch = async () => {
+      try {
+        const authResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/v1/auth-status`, { credentials: 'include' });
+        if (!authResponse.ok || !(await authResponse.json()).isAuthenticated) {
+          window.location.href = '/';
+          return;
+        }
+        fetchSleepData();
+        fetchHeartRateData();
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("An unknown error occurred");
+        }
+      }
+    };
+    checkAuthAndFetch();
   }, []);
-
-  if (isLoading) {
-    return <main className="flex min-h-screen flex-col items-center justify-center p-24"><p>Loading sleep data...</p></main>;
-  }
 
   if (error) {
     return <main className="flex min-h-screen flex-col items-center justify-center p-24"><p>Error: {error}</p></main>;
@@ -121,7 +139,7 @@ export default function Dashboard() {
           />
         </div>
         <button
-          onClick={fetchData}
+          onClick={fetchSleepData}
           className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-2 rounded-lg font-semibold transition-all mt-6"
         >
           Go
@@ -129,7 +147,7 @@ export default function Dashboard() {
       </div>
       
       <div className="w-full max-w-6xl">
-        {sleepData ? <SleepChart data={sleepData} /> : <p>No sleep data to display.</p>}
+        {isSleepLoading ? <p>Loading sleep data...</p> : sleepData ? <SleepChart data={sleepData} /> : <p>No sleep data to display.</p>}
       </div>
 
       <div className="w-full max-w-6xl mt-10">
@@ -151,13 +169,13 @@ export default function Dashboard() {
             />
           </div>
           <button
-            onClick={fetchData}
+            onClick={fetchHeartRateData}
             className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-2 rounded-lg font-semibold transition-all mt-6"
           >
             Go
           </button>
         </div>
-        {restingHeartRateData ? <RestingHeartRateChart data={restingHeartRateData} /> : <p>No resting heart rate data to display.</p>}
+        {isHeartRateLoading ? <p>Loading resting heart rate data...</p> : restingHeartRateData ? <RestingHeartRateChart data={restingHeartRateData} /> : <p>No resting heart rate data to display.</p>}
       </div>
     </main>
   );
