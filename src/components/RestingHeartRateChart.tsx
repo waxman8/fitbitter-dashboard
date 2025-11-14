@@ -5,19 +5,47 @@ import {
 } from 'recharts';
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { calculateSimpleRollingAverage } from '@/utils/smoothing';
 
 interface RestingHeartRateData {
   date: string;
   restingHeartRate: number;
 }
 
-export default function RestingHeartRateChart({ data }: { data: RestingHeartRateData[] }) {
+interface RestingHeartRateChartProps {
+  data: RestingHeartRateData[];
+  startDate: Date;
+  endDate: Date;
+}
+
+export default function RestingHeartRateChart({ data, startDate, endDate }: RestingHeartRateChartProps) {
   const chartData = useMemo(() => {
-    return data.map(item => ({
-      date: new Date(item.date).getTime(),
-      restingHeartRate: item.restingHeartRate,
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    let windowSize = 1;
+    if (diffDays > 180) {
+      windowSize = 100;
+    } else if (diffDays > 90) {
+      windowSize = 45;
+    } else if (diffDays > 30) {
+      windowSize = 5;
+    } else if (diffDays >= 7) {
+      windowSize = 3;
+    }
+
+    const mappedData = data.map(item => ({
+      time: item.date,
+      value: item.restingHeartRate,
     }));
-  }, [data]);
+
+    const smoothedData = calculateSimpleRollingAverage(mappedData, windowSize);
+
+    return smoothedData.map(item => ({
+      date: new Date(item.time).getTime(),
+      restingHeartRate: item.value,
+    }));
+  }, [data, startDate, endDate]);
 
   if (!chartData.length) {
     return <p>No resting heart rate data available to display chart.</p>;

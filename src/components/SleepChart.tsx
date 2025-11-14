@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { calculateRollingAverage } from '@/utils/smoothing';
+import { calculateSimpleRollingAverage } from '@/utils/smoothing';
 
 // Define the structure of our data props
 interface SleepData {
@@ -71,7 +71,7 @@ export default function SleepChart({ data }: { data: SleepData }) {
     if (!data || !data.heartRate) {
       return [];
     }
-    return calculateRollingAverage(data.heartRate, 9);
+    return calculateSimpleRollingAverage(data.heartRate, 15);
   }, [data]);
 
   const chartData = useMemo(() => {

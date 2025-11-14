@@ -175,7 +175,7 @@ export default function Dashboard() {
             Go
           </button>
         </div>
-        {isHeartRateLoading ? <p>Loading resting heart rate data...</p> : restingHeartRateData ? <RestingHeartRateChart data={restingHeartRateData} /> : <p>No resting heart rate data to display.</p>}
+        {isHeartRateLoading ? <p>Loading resting heart rate data...</p> : restingHeartRateData ? <RestingHeartRateChart data={restingHeartRateData} startDate={heartRateStartDate} endDate={heartRateEndDate} /> : <p>No resting heart rate data to display.</p>}
       </div>
     </main>
   );
